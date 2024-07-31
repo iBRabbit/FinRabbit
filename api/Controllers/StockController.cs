@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using api.Data;
+using api.Dtos.Stock;
+using api.Mappers;
+using api.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
@@ -19,7 +22,7 @@ namespace api.Controllers
         
         [HttpGet] // Atribut -> Berguna biar controller tau kalo method ini harus nanggepin GET request
         public IActionResult GetAllStocks() {
-            var stocks = _context.Stocks.ToList(); // Ambil semua data stock dari database
+            var stocks = _context.Stocks.ToList().Select(s => s.ToStockDto()); // Ambil semua data stock dari database
             return Ok(stocks); // Return data stock sebagai response
         }
 
@@ -27,7 +30,18 @@ namespace api.Controllers
         public IActionResult GetStock(int id) {
             var stock = _context.Stocks.Find(id); // Cari stock berdasarkan id
             
-            return (stock != null) ? Ok(stock) : NotFound(); // Kalo stocknya ada, return stocknya. Kalo engga, return 404
+            return (stock != null) ? Ok(stock.ToStockDto()) : NotFound(); // Kalo stocknya ada, return stocknya. Kalo engga, return 404
+        }
+
+        [HttpPost] // Atribut -> Berguna biar controller tau kalo method ini harus nanggepin POST request
+        public IActionResult Create ([FromBody] CreateStockRequestDto stockDto) {
+            var stock = stockDto.ToStockFromCreateDTO(); // Buat object stock dari DTO
+            _context.Stocks.Add(stock); // Tambahkan stock ke database
+            _context.SaveChanges(); // Simpan perubahan ke database
+
+            Console.WriteLine(stock);
+
+            return CreatedAtAction(nameof(GetStock), new { id = stock.Id }, stock.ToStockDto()); // Return 201 Created dan stock yang baru dibuat
         }
     }
 }
